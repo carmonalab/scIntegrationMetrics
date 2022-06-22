@@ -82,3 +82,66 @@ compute_lisi <- function(
 }
 
 
+#' Compute Silhouette coefficient
+#' 
+#' Use this function to compute silhouette scores of one or more labels. 
+#' 
+#' @param X A matrix with cells (rows) and features (columns).
+#' @param meta_data A data frame with one row per cell. 
+#' @param label_colnames Which variables to compute silhouettes for. 
+#' 
+#' @return A data frame of silhouette values. Each row is a cell and each
+#' column is a different label variable. 
+#' 
+#' @importFrom cluster silhouette
+#' @importFrom vegan vegdist 
+#' @export 
+compute_silhouette <- function(X, meta_data, label_colnames ) {
+  
+  N <- nrow(meta_data)
+  sil_df <- data.frame(matrix(NA, N, length(label_colnames)))
+  sil_df <- Reduce(cbind, lapply(label_colnames, function(label_colname) {
+    labels <- data.frame(meta_data)[, label_colname, drop = TRUE]
+    if (any(is.na(labels))) {
+      message(paste("Cannot compute silhouette on missing values.","Skipping",label_colname))
+      return(rep(NA, N))
+    } else if(sum(table(labels)>0) < 2){
+      message(paste("Cannot compute silhouette without at least 2 label levels.","Skipping",label_colname))
+      return(rep(NA, N))
+    }
+    else {
+      dists <- vegdist(X, method="euclidean")
+      labels.num <- as.numeric(as.factor(labels))
+      sil <- as.data.frame(silhouette(labels.num, dists))
+      return(sil$sil_width)
+    }
+  }))
+  sil_df <- as.data.frame(sil_df)
+  colnames(sil_df) <- label_colnames
+  row.names(sil_df) <- row.names(meta_data)
+  
+  return(sil_df)
+  
+}
+
+#' Single-level means
+#' 
+#' @param X A matrix with cells (rows) and features (columns).
+#' @param meta_data A data frame with one row per cell. 
+#' @param label_colnames Which variables to compute averages for. 
+#' @param level Which level to consider
+#' 
+#' @return A vector of means
+#' 
+#' @export 
+compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
+  
+  means <- lapply(label_colnames, function(x)
+    mean(res[,x][meta_data[,x] == level])
+  )
+  names(means) <- label_colnames
+  return(unlist(means))
+  
+}
+
+
