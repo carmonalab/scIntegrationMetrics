@@ -1,5 +1,4 @@
-# scIntegrationMetrics
-================
+## scIntegrationMetrics
 
 A collection of metrics to evaluate the integration of scRNA-seq data, including LISI and silhouette coefficient.
 
