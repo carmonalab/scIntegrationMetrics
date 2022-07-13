@@ -1,4 +1,4 @@
-Package: scIntegrationMethods
+Package: scIntegrationMetrics
 Type: Package
 Title: Metrics of integration performance for scRNA-seq data
 Version: 0.1
