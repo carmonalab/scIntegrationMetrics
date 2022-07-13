@@ -11,6 +11,6 @@
 #' @param tol Stop when the score converges to this tolerance.
 #' @export
 compute_simpson_index <- function(D, knn_idx, batch_labels, n_batches, perplexity = 15, tol = 1e-5) {
-    .Call('_lisi_compute_simpson_index', PACKAGE = 'lisi', D, knn_idx, batch_labels, n_batches, perplexity, tol)
+    .Call('_scIntegrationMethods_compute_simpson_index', PACKAGE = 'scIntegrationMethods', D, knn_idx, batch_labels, n_batches, perplexity, tol)
 }
 

@@ -11,8 +11,14 @@ Description: A collection of metrics to evaluate scRNA-seq integration, includin
 biocViews:
 Depends: R(>= 4.0.0)
 LinkingTo: Rcpp, RcppArmadillo
-Imports: Rcpp, RANN, ggplot2
-Suggests: dplyr, tidyr, magrittr
+Imports: ggplot2,
+    Rcpp,
+    RANN,
+    vegan,
+    cluster
+Suggests: dplyr,
+    tidyr,
+    magrittr
 License: GPL-3
 Encoding: UTF-8
 NeedsCompilation: yes

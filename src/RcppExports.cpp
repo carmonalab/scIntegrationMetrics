@@ -6,9 +6,14 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // compute_simpson_index
 arma::vec compute_simpson_index(arma::mat& D, arma::umat& knn_idx, arma::vec& batch_labels, int n_batches, float perplexity, float tol);
-RcppExport SEXP _lisi_compute_simpson_index(SEXP DSEXP, SEXP knn_idxSEXP, SEXP batch_labelsSEXP, SEXP n_batchesSEXP, SEXP perplexitySEXP, SEXP tolSEXP) {
+RcppExport SEXP _scIntegrationMethods_compute_simpson_index(SEXP DSEXP, SEXP knn_idxSEXP, SEXP batch_labelsSEXP, SEXP n_batchesSEXP, SEXP perplexitySEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -24,11 +29,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_lisi_compute_simpson_index", (DL_FUNC) &_lisi_compute_simpson_index, 6},
+    {"_scIntegrationMethods_compute_simpson_index", (DL_FUNC) &_scIntegrationMethods_compute_simpson_index, 6},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_lisi(DllInfo *dll) {
+RcppExport void R_init_scIntegrationMethods(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

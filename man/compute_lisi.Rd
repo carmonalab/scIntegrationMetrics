@@ -28,18 +28,18 @@ Use this function to compute LISI scores of one or more labels.
 \examples{
 
 ## Example with 400 cells. 
-library(lisi)
+library(scIntegrationMetrics)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(magrittr)
 
-head(lisi::meta_data)
+head(scIntegrationMetrics::meta_data)
 
 ## Let's color cells by labels. For label 1, there are mixed and non-mixed
 ## groups. For label 2, all cells are well mixed. 
-lisi::X \%>\% 
-  cbind(lisi::meta_data) \%>\% 
+scIntegrationMetrics::X \%>\% 
+  cbind(scIntegrationMetrics::meta_data) \%>\% 
   sample_frac(1L, FALSE) \%>\% 
   gather(key, val, label1, label2) \%>\% 
   ggplot(aes(X1, X2, color = val)) +
@@ -47,10 +47,9 @@ lisi::X \%>\%
     facet_wrap(~key)
   
 ## Now to compute and plot the LISI values for each label. 
-lisi_res <- compute_lisi(lisi::X, lisi::meta_data, c('label1', 'label2'))
+lisi_res <- compute_lisi(scIntegrationMetrics::X, scIntegrationMetrics::meta_data, c('label1', 'label2'))
 head(lisi_res)
 
-lisi::X \%>\% 
   cbind(lisi_res) \%>\% 
   sample_frac(1L, FALSE) \%>\% 
   gather(key, lisi_value, label1, label2) \%>\% 
