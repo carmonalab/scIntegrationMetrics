@@ -146,3 +146,35 @@ compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
 }
 
 
+#' Compute Local Inverse Simpson's Index (LISI) split by groups
+#' 
+#' @param X A matrix with cells (rows) and features (columns).
+#' @param meta_data A data frame with one row per cell. 
+#' @param label_colnames Which variables to compute averages for. 
+#' @param split_by_colname Which variable levels use to split data
+#' 
+#' @return A list of data frames of LISI values (one per split_by_colname level). Each row is a cell and each
+#' column is a different label variable. 
+#' 
+#' @export 
+compute_lisi_splitBy <- function (X, meta_data, label_colnames, split_by_colname, normalize=T, ...){
+  
+  X.list <- split.data.frame(X,meta_data[,split_by_colname])
+  meta_data.list <- split.data.frame(meta_data,meta_data[,split_by_colname])
+  
+  X.list.list <- lapply(seq_along(X.list), function(i) {
+    x <- X.list[[i]]
+    m <- meta_data.list[[i]]
+    x.lisi <- compute_lisi(x, m, label_colnames=label_colnames, ... )
+    if(normalize){
+      label_colnames_levels <- apply(m[,label_colnames,drop=F],2,function(x) length(unique(x)))
+      x.lisi <- t(t(x.lisi-1)*(label_colnames_levels-1))
+    }
+    message("Processing group ",unique(m[,split_by_colname]))
+    return(x.lisi)
+  })
+  names(X.list.list) <- unique(meta_data[,split_by_colname])
+  return(X.list.list)
+}
+
+
