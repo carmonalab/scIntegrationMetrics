@@ -173,7 +173,7 @@ compute_lisi_splitBy <- function (X, meta_data, label_colnames, split_by_colname
     message("LISI splitBy: Processing group ",unique(m[,split_by_colname]))
     return(x.lisi)
   })
-  names(X.list.list) <- unique(meta_data[,split_by_colname])
+  names(X.list.list) <- unique(meta_data[,split_by_colname]) # NOTE: make sure the order of split list and unique() is always the same
   return(X.list.list)
 }
 
@@ -226,13 +226,13 @@ getIntegrationMetrics <-
     integrationMetrics <- list()
     
     if (is.null(metricsLabels))
-      metricsLabels <- levels(as.factor(object@meta.data[[meta.label]]))
+      metricsLabels <- unique(object@meta.data[[meta.label]])
     
     message(paste("Cell type labels:", paste(metricsLabels, collapse = ",")))
     
     metricsLabels_logic <-
       object@meta.data[[meta.label]] %in% metricsLabels
-    batchNames <- levels(object@meta.data[[meta.batch]])
+    batchNames <- unique(object@meta.data[[meta.batch]])
     
     message(paste("Batches:", paste(batchNames, collapse = ",")))
     
