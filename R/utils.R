@@ -58,7 +58,7 @@ compute_lisi <- function(
   lisi_df <- Reduce(cbind, lapply(label_colnames, function(label_colname) {
     labels <- data.frame(meta_data)[, label_colname, drop = TRUE]
     if (any(is.na(labels))) {
-      message('Cannot compute LISI on missing values')      
+      message('LISI: Cannot compute LISI on missing values')      
       return(rep(NA, N))
     } else {
       ## don't count yourself in your neighborhood
@@ -104,10 +104,10 @@ compute_silhouette <- function(X, meta_data, label_colnames ) {
   sil_df <- Reduce(cbind, lapply(label_colnames, function(label_colname) {
     labels <- data.frame(meta_data)[, label_colname, drop = TRUE]
     if (any(is.na(labels))) {
-      message(paste("Cannot compute silhouette on missing values.","Skipping",label_colname))
+      message(paste("LISI: Cannot compute silhouette on missing values.","Skipping",label_colname))
       return(rep(NA, N))
     } else if(sum(table(labels)>0) < 2){
-      message(paste("Cannot compute silhouette without at least 2 label levels.","Skipping",label_colname))
+      message(paste("LISI: Cannot compute silhouette without at least 2 label levels.","Skipping",label_colname))
       return(rep(NA, N))
     }
     else {
@@ -170,7 +170,7 @@ compute_lisi_splitBy <- function (X, meta_data, label_colnames, split_by_colname
       label_colnames_levels <- apply(m[,label_colnames,drop=F],2,function(x) length(unique(x)))
       x.lisi <- t(t(x.lisi-1)*(label_colnames_levels-1))
     }
-    message("Processing group ",unique(m[,split_by_colname]))
+    message("LISI splitBy: Processing group ",unique(m[,split_by_colname]))
     return(x.lisi)
   })
   names(X.list.list) <- unique(meta_data[,split_by_colname])
@@ -226,7 +226,7 @@ getIntegrationMetrics <-
     integrationMetrics <- list()
     
     if (is.null(metricsLabels))
-      metricsLabels <- levels(object@meta.data[[meta.label]])
+      metricsLabels <- levels(as.factor(object@meta.data[[meta.label]]))
     
     message(paste("Cell type labels:", paste(metricsLabels, collapse = ",")))
     
