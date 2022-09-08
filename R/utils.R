@@ -168,7 +168,7 @@ compute_lisi_splitBy <- function (X, meta_data, label_colnames, split_by_colname
     x.lisi <- compute_lisi(x, m, label_colnames=label_colnames, ... )
     if(normalize){
       label_colnames_levels <- apply(m[,label_colnames,drop=F],2,function(x) length(unique(x)))
-      x.lisi <- t(t(x.lisi-1)*(label_colnames_levels-1))
+      x.lisi <- data.frame(t(t(x.lisi-1)/(label_colnames_levels-1)))
     }
     message("LISI splitBy: Processing group ",unique(m[,split_by_colname]))
     return(x.lisi)
