@@ -178,3 +178,169 @@ compute_lisi_splitBy <- function (X, meta_data, label_colnames, split_by_colname
 }
 
 
+
+#' Compute multiple integration metrics from a Seurat object
+#' 
+#' @param object A seurat object with dimensionality reduction and meta data
+#' @param meta.label Which meta data column contains cluster/celltype labels 
+#' @param meta.batch Which meta data column contains batch 
+#' @param method.reduction reduction method to consider, eg 'pca'
+#' @param metrics one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','celltype_nLISI', 'celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all
+#' @param metricsLabels which cluster/celltype labels to consider to summarize metrics, by default use all
+#' @return A list of mean values for each metric 
+#' 
+#' @export
+getIntegrationMetrics <-
+  function(object,
+           metrics=NULL,
+           meta.label,
+           meta.batch,
+           lisi_perplexity=30,
+           method.reduction="pca",
+           metricsLabels = NULL) {
+    # check input parameters
+    metricsAvailable <-
+      c(
+        "batch_LISI",
+        "batch_nLISI",
+        "batch_nLISI_means",
+        "batch_nLISI_perCellType",
+        "batch_nLISI_perCellType_means",
+        "celltype_nLISI",
+        "celltype_nLISI_means",
+        "celltype_ASW",
+        "celltype_ASW_means"
+      )
+    
+    if(is.null(metrics)) {metrics <- metricsAvailable }
+    if (!all(metrics %in% metricsAvailable)) {
+      stop(
+        "Error: 'metrics' is unknown. Please define one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','celltype_nLISI', 'celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all"
+      )
+    }
+    
+    if (!is(object, "Seurat")) {
+      stop("Error: 'object' must be a 'Seurat' object.")
+    }
+    
+    integrationMetrics <- list()
+    
+    if (is.null(metricsLabels))
+      metricsLabels <- levels(object@meta.data[[meta.label]])
+    
+    message(paste("Cell type labels:", paste(metricsLabels, collapse = ",")))
+    
+    metricsLabels_logic <-
+      object@meta.data[[meta.label]] %in% metricsLabels
+    batchNames <- levels(object@meta.data[[meta.batch]])
+    
+    message(paste("Batches:", paste(batchNames, collapse = ",")))
+    
+    
+    #batch lisi
+    if (any(c("batch_LISI", "batch_nLISI", "batch_nLISI_means") %in% metrics)) {
+      lisi.this <-
+        compute_lisi(
+          object@reductions[[method.reduction]]@cell.embeddings,
+          meta_data = object@meta.data,
+          label_colnames = meta.batch,
+          perplexity = lisi_perplexity
+        )[[1]]
+      
+      if ("batch_LISI" %in% metrics) {
+        integrationMetrics[["batch_LISI"]] <-
+          mean(lisi.this[metricsLabels_logic])
+        
+      }
+      
+      if ("batch_nLISI" %in% metrics) {
+        lisi.this.normalized <- (lisi.this - 1) / (length(batchNames) - 1)
+        
+        integrationMetrics[["batch_nLISI"]] <-
+          mean(lisi.this.normalized[metricsLabels_logic])
+        
+        if ("batch_nLISI_means" %in% metrics) {
+          integrationMetrics[["batch_nLISI_means"]] <-
+            mean(tapply(lisi.this.normalized, object@meta.data[[meta.label]], mean)[metricsLabels]) #means per cell type
+          
+        }
+      }
+    }
+    
+    #batch lisi per celltype
+    
+    
+    if (any(c(
+      "batch_nLISI_perCellType",
+      "batch_nLISI_perCellType_means"
+    ) %in% metrics)) {
+      lisi_splitByCelltype <-
+        compute_lisi_splitBy(
+          object@reductions[[method.reduction]]@cell.embeddings,
+          meta_data = object@meta.data,
+          label_colnames = meta.batch,
+          perplexity = lisi_perplexity,
+          split_by_colname = meta.label,
+          normalize = T
+        )
+      
+      if ("batch_nLISI_perCellType" %in% metrics) {
+        integrationMetrics[["batch_nLISI_perCellType"]] <-
+          mean(unlist(lisi_splitByCelltype)[metricsLabels_logic])
+      }
+      if ("batch_nLISI_perCellType_means" %in% metrics) {
+        classMeans <- sapply(lisi_splitByCelltype, mean)[metricsLabels]
+        message("batch_nLISI_perCellType: ", paste(names(lisi_splitByCelltype), round(classMeans, 2), " "))
+        integrationMetrics[["batch_nLISI_perCellType_means"]] <-
+          mean(classMeans)
+      }
+    }
+    
+    #cluster/celltype lisi
+    if (any(c("celltype_nLISI", "celltype_nLISI_means") %in% metrics)) {
+      lisi.this <-
+        compute_lisi(
+          object@reductions[[method.reduction]]@cell.embeddings,
+          meta_data = object@meta.data,
+          label_colnames = meta.label,
+          perplexity = lisi_perplexity
+        )[[1]]
+      
+      lisi.this.normalized <-
+        (lisi.this - 1) / (length(metricsLabels) - 1)
+      
+      if ("celltype_nLISI" %in% metrics) {
+        integrationMetrics[["celltype_nLISI"]] <-
+          mean(lisi.this.normalized[metricsLabels_logic])
+      }
+      
+      if ("celltype_nLISI_means" %in% metrics) {
+        integrationMetrics[["celltype_nLISI_means"]] <-
+          mean(tapply(lisi.this.normalized, object@meta.data[[meta.label]], mean)[metricsLabels])
+      }
+    }
+    
+    # silhouette
+    if (any(c("celltype_ASW", "celltype_ASW_means") %in% metrics)) {
+      sil.this <-
+        compute_silhouette(
+          object@reductions[[method.reduction]]@cell.embeddings,
+          meta_data = object@meta.data,
+          label_colnames = meta.label
+        )[[1]]
+      
+      if ("celltype_ASW" %in% metrics) {
+        integrationMetrics[["celltype_ASW"]] <-
+          mean(sil.this[metricsLabels_logic])
+      }
+      if ("celltype_ASW_means" %in% metrics) {
+        integrationMetrics[["celltype_ASW_means"]] <-
+          mean(tapply(sil.this, object@meta.data[[meta.label]], mean)[metricsLabels])
+      }
+    }
+    
+    return(integrationMetrics)
+    
+  }
+
+
