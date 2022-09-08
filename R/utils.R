@@ -104,10 +104,10 @@ compute_silhouette <- function(X, meta_data, label_colnames ) {
   sil_df <- Reduce(cbind, lapply(label_colnames, function(label_colname) {
     labels <- data.frame(meta_data)[, label_colname, drop = TRUE]
     if (any(is.na(labels))) {
-      message(paste("LISI: Cannot compute silhouette on missing values.","Skipping",label_colname))
+      message(paste("ASW: Cannot compute silhouette on missing values.","Skipping",label_colname))
       return(rep(NA, N))
     } else if(sum(table(labels)>0) < 2){
-      message(paste("LISI: Cannot compute silhouette without at least 2 label levels.","Skipping",label_colname))
+      message(paste("ASW: Cannot compute silhouette without at least 2 label levels.","Skipping",label_colname))
       return(rep(NA, N))
     }
     else {
