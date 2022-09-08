@@ -289,7 +289,7 @@ getIntegrationMetrics <-
           mean(unlist(lisi_splitByCelltype)[metricsLabels_logic])
       }
       if ("batch_nLISI_perCellType_means" %in% metrics) {
-        classMeans <- sapply(lisi_splitByCelltype, mean)[metricsLabels]
+        classMeans <- sapply(lisi_splitByCelltype, function(x) mean(x[,1]))[metricsLabels] # only considering the first `label_colnames`
         message("batch_nLISI_perCellType: ", paste(names(lisi_splitByCelltype), round(classMeans, 2), " "))
         integrationMetrics[["batch_nLISI_perCellType_means"]] <-
           mean(classMeans)
