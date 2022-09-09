@@ -1,4 +1,4 @@
-#' Compute Local Inverse Simpson's Index (LISI)
+ #' Compute Local Inverse Simpson's Index (LISI)
 #' 
 #' Use this function to compute LISI scores of one or more labels.
 #' NOTE: Function from https://github.com/immunogenomics/LISI repository 
@@ -150,30 +150,42 @@ compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
 #' 
 #' @param X A matrix with cells (rows) and features (columns).
 #' @param meta_data A data frame with one row per cell. 
-#' @param label_colnames Which variables to compute averages for. 
+#' @param label_colnames Which variables to compute averages for.
+#' @param normalize Normalize LISI between 0 and 1 
 #' @param split_by_colname Which variable levels use to split data
 #' 
 #' @return A list of data frames of LISI values (one per split_by_colname level). Each row is a cell and each
 #' column is a different label variable. 
 #' 
-#' @export 
-compute_lisi_splitBy <- function (X, meta_data, label_colnames, split_by_colname, normalize=T, ...){
+#' @export compute_lisi_splitBy
+compute_lisi_splitBy <- function (X, meta_data,
+                                  label_colnames,
+                                  split_by_colname,
+                                  normalize=TRUE, ...){
   
   X.list <- split.data.frame(X,meta_data[,split_by_colname])
   meta_data.list <- split.data.frame(meta_data,meta_data[,split_by_colname])
   
+  names <- names(X.list)
+  
   X.list.list <- lapply(seq_along(X.list), function(i) {
     x <- X.list[[i]]
     m <- meta_data.list[[i]]
+    n <- names[i]
+    
     x.lisi <- compute_lisi(x, m, label_colnames=label_colnames, ... )
     if(normalize){
-      label_colnames_levels <- apply(m[,label_colnames,drop=F],2,function(x) length(unique(x)))
+      label_colnames_levels <- apply(m[,label_colnames,drop=F],2,
+                                     function(x) length(unique(x)))
       x.lisi <- data.frame(t(t(x.lisi-1)/(label_colnames_levels-1)))
     }
-    message("LISI splitBy: Processing group ",unique(m[,split_by_colname]))
+    message("LISI splitBy: Processing group ", n)
     return(x.lisi)
   })
-  names(X.list.list) <- unique(meta_data[,split_by_colname]) # NOTE: make sure the order of split list and unique() is always the same
+  
+  #names(X.list.list) <- unique(meta_data[,split_by_colname]) # NOTE: make sure the order of split list and unique() is always the same
+  names(X.list.list) <- names
+  
   return(X.list.list)
 }
 

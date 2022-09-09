@@ -9,7 +9,7 @@ compute_lisi_splitBy(
   meta_data,
   label_colnames,
   split_by_colname,
-  normalize = T,
+  normalize = TRUE,
   ...
 )
 }
@@ -21,6 +21,8 @@ compute_lisi_splitBy(
 \item{label_colnames}{Which variables to compute averages for.}
 
 \item{split_by_colname}{Which variable levels use to split data}
+
+\item{normalize}{Normalize LISI between 0 and 1}
 }
 \value{
 A list of data frames of LISI values (one per split_by_colname level). Each row is a cell and each
