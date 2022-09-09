@@ -185,7 +185,7 @@ compute_lisi_splitBy <- function (X, meta_data, label_colnames, split_by_colname
 #' @param meta.label Which meta data column contains cluster/celltype labels 
 #' @param meta.batch Which meta data column contains batch 
 #' @param method.reduction reduction method to consider, eg 'pca'
-#' @param metrics one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','celltype_nLISI', 'celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all
+#' @param metrics one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','1-celltype_nLISI', '1-celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all
 #' @param metricsLabels which cluster/celltype labels to consider to summarize metrics, by default use all
 #' @return A list of mean values for each metric 
 #' 
@@ -206,8 +206,8 @@ getIntegrationMetrics <-
         "batch_nLISI_means",
         "batch_nLISI_perCellType",
         "batch_nLISI_perCellType_means",
-        "celltype_nLISI",
-        "celltype_nLISI_means",
+        "1-celltype_nLISI",
+        "1-celltype_nLISI_means",
         "celltype_ASW",
         "celltype_ASW_means"
       )
@@ -215,7 +215,7 @@ getIntegrationMetrics <-
     if(is.null(metrics)) {metrics <- metricsAvailable }
     if (!all(metrics %in% metricsAvailable)) {
       stop(
-        "Error: 'metrics' is unknown. Please define one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','celltype_nLISI', 'celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all"
+        "Error: 'metrics' is unknown. Please define one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','1-celltype_nLISI', '1-celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all"
       )
     }
     
@@ -297,7 +297,7 @@ getIntegrationMetrics <-
     }
     
     #cluster/celltype lisi
-    if (any(c("celltype_nLISI", "celltype_nLISI_means") %in% metrics)) {
+    if (any(c("1-celltype_nLISI", "1-celltype_nLISI_means") %in% metrics)) {
       lisi.this <-
         compute_lisi(
           object@reductions[[method.reduction]]@cell.embeddings,
@@ -309,14 +309,14 @@ getIntegrationMetrics <-
       lisi.this.normalized <-
         (lisi.this - 1) / (length(metricsLabels) - 1)
       
-      if ("celltype_nLISI" %in% metrics) {
-        integrationMetrics[["celltype_nLISI"]] <-
-          mean(lisi.this.normalized[metricsLabels_logic])
+      if ("1-celltype_nLISI" %in% metrics) {
+        integrationMetrics[["1-celltype_nLISI"]] <-
+          1-mean(lisi.this.normalized[metricsLabels_logic])
       }
       
-      if ("celltype_nLISI_means" %in% metrics) {
-        integrationMetrics[["celltype_nLISI_means"]] <-
-          mean(tapply(lisi.this.normalized, object@meta.data[[meta.label]], mean)[metricsLabels])
+      if ("1-celltype_nLISI_means" %in% metrics) {
+        integrationMetrics[["1-celltype_nLISI_means"]] <-
+          1-mean(tapply(lisi.this.normalized, object@meta.data[[meta.label]], mean)[metricsLabels])
       }
     }
     

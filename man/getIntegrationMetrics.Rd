@@ -17,7 +17,7 @@ getIntegrationMetrics(
 \arguments{
 \item{object}{A seurat object with dimensionality reduction and meta data}
 
-\item{metrics}{one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','celltype_nLISI', 'celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all}
+\item{metrics}{one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','1-celltype_nLISI', '1-celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all}
 
 \item{meta.label}{Which meta data column contains cluster/celltype labels}
 
