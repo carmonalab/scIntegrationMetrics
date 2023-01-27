@@ -50,10 +50,20 @@
 #'     facet_wrap(~key)
 #' 
 compute_lisi <- function(
-  X, meta_data, label_colnames, perplexity = 30, nn_eps = 0
+  X,
+  meta_data,
+  label_colnames,
+  perplexity = 30,
+  nn_eps = 0
 ) {
   N <- nrow(meta_data)
-  dknn <- nn2(X, k = perplexity * 3, eps = nn_eps)
+  
+  if (perplexity >= N) {
+    perplexity <- N-1
+    warning(sprintf("Cannot calculate more neighbors than there are points. Setting perplexity to %i", perplexity))
+  }
+  
+  dknn <- nn2(X, k = perplexity + 1, eps = nn_eps)
   lisi_df <- data.frame(matrix(NA, N, length(label_colnames)))
   lisi_df <- Reduce(cbind, lapply(label_colnames, function(label_colname) {
     labels <- data.frame(meta_data)[, label_colname, drop = TRUE]
@@ -202,8 +212,7 @@ compute_lisi_splitBy <- function (X, meta_data,
 #' @return A list of mean values for each metric 
 #' 
 #' @export
-getIntegrationMetrics <-
-  function(object,
+getIntegrationMetrics <- function(object,
            metrics=NULL,
            meta.label,
            meta.batch,
