@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{getIntegrationMetrics}
 \alias{getIntegrationMetrics}
-\title{Compute multiple integration metrics from a Seurat object}
+\title{Integration metrics for single-cell data}
 \usage{
 getIntegrationMetrics(
   object,
@@ -17,7 +17,10 @@ getIntegrationMetrics(
 \arguments{
 \item{object}{A seurat object with dimensionality reduction and meta data}
 
-\item{metrics}{one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','1-celltype_nLISI', '1-celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all}
+\item{metrics}{one or more of 'iLISI', 'norm_iLISI',
+'CiLISI', 'CiLISI_means','norm_cLISI', 'norm_cLISI_means',
+'celltype_ASW', 'celltype_ASW_means';
+or 'NULL' to calculate them all}
 
 \item{meta.label}{Which meta data column contains cluster/celltype labels}
 
@@ -31,5 +34,25 @@ getIntegrationMetrics(
 A list of mean values for each metric
 }
 \description{
-Compute multiple integration metrics from a Seurat object
+Computes multiple integration metrics from a Seurat object, including several flavors of Local Inverse Simpson's Index and
+Average Silhouette Coefficient - see details below.
+}
+\details{
+The following metrics have been implemented:
+\itemize{
+ \item{"iLISI"}{Integration LISI: defined by \href{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6884693/}{Korsunsky et al. Nat Methods (2019)},
+ it quantifies the effective number of datasets in a local neighborhood, thereby
+ measuring batch mixing}
+ \item{"norm_iLISI"}{iLISI normalized between 0 and 1}
+ \item{"CiLISI"}{Per-cell type iLISI: iLISI is computed separately for each cell type,
+ and normalized between 0 and 1}
+ \item{"CiLISI_means"}{As CiLISI, but returns the mean of means per cell type instead of global mean}
+ \item{"norm_cLISI"}{Normalized cell-type LISI: defined by \href{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6884693/}{Korsunsky et al. Nat Methods (2019)},
+ it quantifies the effective number of cell types in a local neighborhood. Here we define norm_cLISI as: 1 - normalized celltype LISI,
+ to vary between 0 (bad cell type separation) to 1 (good cell type separation)}
+ \item{"norm_cLISI_means"}{As norm_cLISI, but using mean of means per cell type instead of global mean}
+ \item{"celltype_ASW"}{Cell type Average Silhoette Coefficient: It quantifies distances
+  of cells of the same type compared to the distances to cells of other types.}
+ \item{"celltype_ASW_means"}{As celltype_ASW, but using mean of means per cell type instead of global mean}
+}
 }

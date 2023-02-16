@@ -1,7 +1,7 @@
  #' Compute Local Inverse Simpson's Index (LISI)
 #' 
 #' Use this function to compute LISI scores of one or more labels.
-#' NOTE: Function from https://github.com/immunogenomics/LISI repository 
+#' NOTE: Forked from https://github.com/immunogenomics/LISI
 #' 
 #' @param X A matrix with cells (rows) and features (columns).
 #' @param meta_data A data frame with one row per cell. 
@@ -193,7 +193,6 @@ compute_lisi_splitBy <- function (X, meta_data,
     return(x.lisi)
   })
   
-  #names(X.list.list) <- unique(meta_data[,split_by_colname]) # NOTE: make sure the order of split list and unique() is always the same
   names(X.list.list) <- names
   
   return(X.list.list)
@@ -201,14 +200,37 @@ compute_lisi_splitBy <- function (X, meta_data,
 
 
 
-#' Compute multiple integration metrics from a Seurat object
+#' Integration metrics for single-cell data
+#' 
+#' Computes multiple integration metrics from a Seurat object, including several flavors of Local Inverse Simpson's Index and
+#' Average Silhouette Coefficient - see details below.
 #' 
 #' @param object A seurat object with dimensionality reduction and meta data
 #' @param meta.label Which meta data column contains cluster/celltype labels 
 #' @param meta.batch Which meta data column contains batch 
 #' @param method.reduction reduction method to consider, eg 'pca'
-#' @param metrics one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','1-celltype_nLISI', '1-celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all
+#' @param metrics one or more of 'iLISI', 'norm_iLISI',
+#'     'CiLISI', 'CiLISI_means','norm_cLISI', 'norm_cLISI_means',
+#'     'celltype_ASW', 'celltype_ASW_means';
+#'     or 'NULL' to calculate them all
 #' @param metricsLabels which cluster/celltype labels to consider to summarize metrics, by default use all
+#' @details The following metrics have been implemented:
+#' \itemize{
+#'  \item{"iLISI"}{Integration LISI: defined by \href{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6884693/}{Korsunsky et al. Nat Methods (2019)},
+#'  it quantifies the effective number of datasets in a local neighborhood, thereby
+#'  measuring batch mixing}
+#'  \item{"norm_iLISI"}{iLISI normalized between 0 and 1}
+#'  \item{"CiLISI"}{Per-cell type iLISI: iLISI is computed separately for each cell type,
+#'  and normalized between 0 and 1}
+#'  \item{"CiLISI_means"}{As CiLISI, but returns the mean of means per cell type instead of global mean}
+#'  \item{"norm_cLISI"}{Normalized cell-type LISI: defined by \href{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6884693/}{Korsunsky et al. Nat Methods (2019)},
+#'  it quantifies the effective number of cell types in a local neighborhood. Here we define norm_cLISI as: 1 - normalized celltype LISI,
+#'  to vary between 0 (bad cell type separation) to 1 (good cell type separation)}
+#'  \item{"norm_cLISI_means"}{As norm_cLISI, but using mean of means per cell type instead of global mean}
+#'  \item{"celltype_ASW"}{Cell type Average Silhoette Coefficient: It quantifies distances
+#'   of cells of the same type compared to the distances to cells of other types.}
+#'  \item{"celltype_ASW_means"}{As celltype_ASW, but using mean of means per cell type instead of global mean}
+#' }
 #' @return A list of mean values for each metric 
 #' 
 #' @export
@@ -221,23 +243,20 @@ getIntegrationMetrics <- function(object,
            metricsLabels = NULL) {
     # check input parameters
     metricsAvailable <-
-      c(
-        "batch_LISI",
-        "batch_nLISI",
-        "batch_nLISI_means",
-        "batch_nLISI_perCellType",
-        "batch_nLISI_perCellType_means",
-        "1-celltype_nLISI",
-        "1-celltype_nLISI_means",
+      c("iLISI",
+        "norm_iLISI",
+        "CiLISI",
+        "CiLISI_means",
+        "norm_cLISI",
+        "norm_cLISI_means", 
         "celltype_ASW",
-        "celltype_ASW_means"
-      )
+        "celltype_ASW_means")
     
     if(is.null(metrics)) {metrics <- metricsAvailable }
     if (!all(metrics %in% metricsAvailable)) {
-      stop(
-        "Error: 'metrics' is unknown. Please define one or more of 'batch_LISI', 'batch_nLISI', 'batch_nLISI_means', 'batch_nLISI_perCellType', 'batch_nLISI_perCellType_means','1-celltype_nLISI', '1-celltype_nLISI_means', 'celltype_ASW', 'celltype_ASW_means', or leave 'NULL' to calculate them all"
-      )
+      metrics_vector <- paste(c(metricsAvailable), collapse=",")
+      str <- sprintf("'metrics' is unknown. Please define one or more of %s, or 'metrics=NULL' to calculate them all", metrics_vector)
+      stop(str)
     }
     
     if (!is(object, "Seurat")) {
@@ -258,8 +277,8 @@ getIntegrationMetrics <- function(object,
     message(paste("Batches:", paste(batchNames, collapse = ",")))
     
     
-    #batch lisi
-    if (any(c("batch_LISI", "batch_nLISI", "batch_nLISI_means") %in% metrics)) {
+    #Integration LISI
+    if (any(c("iLISI", "norm_iLISI") %in% metrics)) {
       lisi.this <-
         compute_lisi(
           object@reductions[[method.reduction]]@cell.embeddings,
@@ -268,32 +287,23 @@ getIntegrationMetrics <- function(object,
           perplexity = lisi_perplexity
         )[[1]]
       
-      if ("batch_LISI" %in% metrics) {
-        integrationMetrics[["batch_LISI"]] <-
+      if ("iLISI" %in% metrics) {
+        integrationMetrics[["iLISI"]] <-
           mean(lisi.this[metricsLabels_logic])
         
       }
       
-      if ("batch_nLISI" %in% metrics) {
+      if ("norm_iLISI" %in% metrics) {
         lisi.this.normalized <- (lisi.this - 1) / (length(batchNames) - 1)
-        
-        integrationMetrics[["batch_nLISI"]] <-
+        integrationMetrics[["norm_iLISI"]] <-
           mean(lisi.this.normalized[metricsLabels_logic])
-        
-        if ("batch_nLISI_means" %in% metrics) {
-          integrationMetrics[["batch_nLISI_means"]] <-
-            mean(tapply(lisi.this.normalized, object@meta.data[[meta.label]], mean)[metricsLabels]) #means per cell type
-          
-        }
       }
     }
     
-    #batch lisi per celltype
-    
-    
+    #Integration LISI per celltype
     if (any(c(
-      "batch_nLISI_perCellType",
-      "batch_nLISI_perCellType_means"
+      "CiLISI",
+      "CiLISI_means"
     ) %in% metrics)) {
       lisi_splitByCelltype <-
         compute_lisi_splitBy(
@@ -305,20 +315,20 @@ getIntegrationMetrics <- function(object,
           normalize = T
         )
       
-      if ("batch_nLISI_perCellType" %in% metrics) {
-        integrationMetrics[["batch_nLISI_perCellType"]] <-
+      if ("CiLISI" %in% metrics) {
+        integrationMetrics[["CiLISI"]] <-
           mean(unlist(lisi_splitByCelltype)[metricsLabels_logic])
       }
-      if ("batch_nLISI_perCellType_means" %in% metrics) {
+      if ("CiLISI_means" %in% metrics) {
         classMeans <- sapply(lisi_splitByCelltype, function(x) mean(x[,1]))[metricsLabels] # only considering the first `label_colnames`
-        message("batch_nLISI_perCellType: ", paste(names(lisi_splitByCelltype), round(classMeans, 2), " "))
-        integrationMetrics[["batch_nLISI_perCellType_means"]] <-
+        message("CiLISI: ", paste(names(lisi_splitByCelltype), round(classMeans, 2), " "))
+        integrationMetrics[["CiLISI_means"]] <-
           mean(classMeans)
       }
     }
     
-    #cluster/celltype lisi
-    if (any(c("1-celltype_nLISI", "1-celltype_nLISI_means") %in% metrics)) {
+    #cluster/celltype LISI
+    if (any(c("norm_cLISI", "norm_cLISI_means") %in% metrics)) {
       lisi.this <-
         compute_lisi(
           object@reductions[[method.reduction]]@cell.embeddings,
@@ -330,13 +340,13 @@ getIntegrationMetrics <- function(object,
       lisi.this.normalized <-
         (lisi.this - 1) / (length(metricsLabels) - 1)
       
-      if ("1-celltype_nLISI" %in% metrics) {
-        integrationMetrics[["1-celltype_nLISI"]] <-
+      if ("norm_cLISI" %in% metrics) {
+        integrationMetrics[["norm_cLISI"]] <-
           1-mean(lisi.this.normalized[metricsLabels_logic])
       }
       
-      if ("1-celltype_nLISI_means" %in% metrics) {
-        integrationMetrics[["1-celltype_nLISI_means"]] <-
+      if ("norm_cLISI_means" %in% metrics) {
+        integrationMetrics[["norm_cLISI_means"]] <-
           1-mean(tapply(lisi.this.normalized, object@meta.data[[meta.label]], mean)[metricsLabels])
       }
     }
@@ -359,9 +369,7 @@ getIntegrationMetrics <- function(object,
           mean(tapply(sil.this, object@meta.data[[meta.label]], mean)[metricsLabels])
       }
     }
-    
     return(integrationMetrics)
-    
   }
 
 

@@ -24,7 +24,7 @@ column is a different label variable.
 }
 \description{
 Use this function to compute LISI scores of one or more labels.
-NOTE: Function from https://github.com/immunogenomics/LISI repository
+NOTE: Forked from https://github.com/immunogenomics/LISI
 }
 \examples{
 

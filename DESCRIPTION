@@ -1,7 +1,7 @@
 Package: scIntegrationMetrics
 Type: Package
 Title: Metrics of integration performance for scRNA-seq data
-Version: 0.1
+Version: 0.2
 Date: 2019-03-31
 Authors@R: c(
   person(given = 'Massimo', family = 'Andreatta', email = 'massimo.andreatta@unil.ch', role = c('aut','cre'), comment = c(ORCID = '0000-0002-8036-2647')),
@@ -23,4 +23,4 @@ License: GPL-3
 Encoding: UTF-8
 NeedsCompilation: yes
 LazyData: true
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
