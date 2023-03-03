@@ -9,6 +9,7 @@ compute_lisi_splitBy(
   meta_data,
   label_colnames,
   split_by_colname,
+  metricsLabels = NULL,
   normalize = TRUE,
   ...
 )
@@ -21,6 +22,8 @@ compute_lisi_splitBy(
 \item{label_colnames}{Which variables to compute averages for.}
 
 \item{split_by_colname}{Which variable levels use to split data}
+
+\item{metricsLabels}{Which cell types to evaluate for LISI calculation}
 
 \item{normalize}{Normalize LISI between 0 and 1}
 }

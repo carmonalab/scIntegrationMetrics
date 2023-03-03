@@ -163,6 +163,7 @@ compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
 #' @param label_colnames Which variables to compute averages for.
 #' @param normalize Normalize LISI between 0 and 1 
 #' @param split_by_colname Which variable levels use to split data
+#' @param metricsLabels Which cell types to evaluate for LISI calculation
 #' 
 #' @return A list of data frames of LISI values (one per split_by_colname level). Each row is a cell and each
 #' column is a different label variable. 
@@ -171,10 +172,18 @@ compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
 compute_lisi_splitBy <- function (X, meta_data,
                                   label_colnames,
                                   split_by_colname,
+                                  metricsLabels=NULL,
                                   normalize=TRUE, ...){
+  
+  if (is.null(metricsLabels))
+    metricsLabels <- unique(na.omit(meta_data[[meta.label]]))
   
   X.list <- split.data.frame(X,meta_data[,split_by_colname])
   meta_data.list <- split.data.frame(meta_data,meta_data[,split_by_colname])
+  
+  #on selected categories, and excluding NAs
+  X.list <- X.list[metricsLabels]
+  meta_data.list <- meta_data.list[metricsLabels]
   
   names <- names(X.list)
   
@@ -186,7 +195,7 @@ compute_lisi_splitBy <- function (X, meta_data,
     x.lisi <- compute_lisi(x, m, label_colnames=label_colnames, ... )
     if(normalize){
       label_colnames_levels <- apply(m[,label_colnames,drop=F],2,
-                                     function(x) length(unique(x)))
+                                     function(w) length(unique(w)))
       x.lisi <- data.frame(t(t(x.lisi-1)/(label_colnames_levels-1)))
     }
     message("LISI splitBy: Processing group ", n)
@@ -265,8 +274,18 @@ getIntegrationMetrics <- function(object,
     
     integrationMetrics <- list()
     
+    #Exclude cells with NA labels (most metrics cannot account for NAs)
+    meta <- object@meta.data[,c(meta.label, meta.batch)]
+    notNA.cells <- rownames(meta)[!is.na(meta[,meta.label]) & !is.na(meta[,meta.batch])]
+    object <- subset(object, cells = notNA.cells)
+    
+    n.rem <- nrow(meta) - length(notNA.cells)
+    if (n.rem > 0) {
+      message(sprintf("Found labels with NA value. Excluding %i cells from calculation of metrics", n.rem))
+    }
+    
     if (is.null(metricsLabels))
-      metricsLabels <- unique(object@meta.data[[meta.label]])
+      metricsLabels <- unique(na.omit(object@meta.data[[meta.label]]))
     
     message(paste("Cell type labels:", paste(metricsLabels, collapse = ",")))
     
@@ -275,7 +294,6 @@ getIntegrationMetrics <- function(object,
     batchNames <- unique(object@meta.data[[meta.batch]])
     
     message(paste("Batches:", paste(batchNames, collapse = ",")))
-    
     
     #Integration LISI
     if (any(c("iLISI", "norm_iLISI") %in% metrics)) {
@@ -290,7 +308,6 @@ getIntegrationMetrics <- function(object,
       if ("iLISI" %in% metrics) {
         integrationMetrics[["iLISI"]] <-
           mean(lisi.this[metricsLabels_logic])
-        
       }
       
       if ("norm_iLISI" %in% metrics) {
@@ -312,15 +329,16 @@ getIntegrationMetrics <- function(object,
           label_colnames = meta.batch,
           perplexity = lisi_perplexity,
           split_by_colname = meta.label,
+          metricsLabels = metricsLabels,
           normalize = T
         )
       
       if ("CiLISI" %in% metrics) {
         integrationMetrics[["CiLISI"]] <-
-          mean(unlist(lisi_splitByCelltype)[metricsLabels_logic])
+          mean(unlist(lisi_splitByCelltype))
       }
       if ("CiLISI_means" %in% metrics) {
-        classMeans <- sapply(lisi_splitByCelltype, function(x) mean(x[,1]))[metricsLabels] # only considering the first `label_colnames`
+        classMeans <- sapply(lisi_splitByCelltype, function(x) mean(x[,1]))
         message("CiLISI: ", paste(names(lisi_splitByCelltype), round(classMeans, 2), " "))
         integrationMetrics[["CiLISI_means"]] <-
           mean(classMeans)
