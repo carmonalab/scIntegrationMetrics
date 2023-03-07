@@ -217,7 +217,10 @@ compute_lisi_splitBy <- function (X, meta_data,
 #' @param object A seurat object with dimensionality reduction and meta data
 #' @param meta.label Which meta data column contains cluster/celltype labels 
 #' @param meta.batch Which meta data column contains batch 
-#' @param method.reduction reduction method to consider, eg 'pca'
+#' @param method.reduction Reduction method to consider, eg 'pca'
+#' @param iLISI_perplexity Number of cells in neighborhood for integration LISI metrics (iLISI)
+#' @param cLISI_perplexity Number of cells in neighborhood for cluster LISI metrics (cLISI). By default,
+#'     it is calculated as 2 * average number of cells per label per dataset, not counting zero-size clusters.
 #' @param metrics one or more of 'iLISI', 'norm_iLISI',
 #'     'CiLISI', 'CiLISI_means','norm_cLISI', 'norm_cLISI_means',
 #'     'celltype_ASW', 'celltype_ASW_means';
@@ -247,7 +250,8 @@ getIntegrationMetrics <- function(object,
            metrics=NULL,
            meta.label,
            meta.batch,
-           lisi_perplexity=30,
+           iLISI_perplexity=30,
+           cLISI_perplexity="default",
            method.reduction="pca",
            metricsLabels = NULL) {
     # check input parameters
@@ -295,6 +299,15 @@ getIntegrationMetrics <- function(object,
     
     message(paste("Batches:", paste(batchNames, collapse = ",")))
     
+    #Determine default cLISI_perplexity
+    if (cLISI_perplexity == "default") {
+      t <- table(meta$scGate_multi, meta$SampleLabel)
+      labsize_means <- apply(t, 1, function(x){mean(x[x>0])})
+      cLISI_perplexity <- round(2 * mean(labsize_means))
+      mess <- sprintf("Setting default cLISI_perplexity to %i", cLISI_perplexity)
+      message(mess)
+    }
+    
     #Integration LISI
     if (any(c("iLISI", "norm_iLISI") %in% metrics)) {
       lisi.this <-
@@ -302,7 +315,7 @@ getIntegrationMetrics <- function(object,
           object@reductions[[method.reduction]]@cell.embeddings,
           meta_data = object@meta.data,
           label_colnames = meta.batch,
-          perplexity = lisi_perplexity
+          perplexity = iLISI_perplexity
         )[[1]]
       
       if ("iLISI" %in% metrics) {
@@ -327,7 +340,7 @@ getIntegrationMetrics <- function(object,
           object@reductions[[method.reduction]]@cell.embeddings,
           meta_data = object@meta.data,
           label_colnames = meta.batch,
-          perplexity = lisi_perplexity,
+          perplexity = iLISI_perplexity,
           split_by_colname = meta.label,
           metricsLabels = metricsLabels,
           normalize = T
@@ -345,14 +358,14 @@ getIntegrationMetrics <- function(object,
       }
     }
     
-    #cluster/celltype LISI
+    #Cluster/celltype LISI
     if (any(c("norm_cLISI", "norm_cLISI_means") %in% metrics)) {
       lisi.this <-
         compute_lisi(
           object@reductions[[method.reduction]]@cell.embeddings,
           meta_data = object@meta.data,
           label_colnames = meta.label,
-          perplexity = lisi_perplexity
+          perplexity = cLISI_perplexity
         )[[1]]
       
       lisi.this.normalized <-

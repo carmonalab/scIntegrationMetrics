@@ -9,7 +9,8 @@ getIntegrationMetrics(
   metrics = NULL,
   meta.label,
   meta.batch,
-  lisi_perplexity = 30,
+  iLISI_perplexity = 30,
+  cLISI_perplexity = "default",
   method.reduction = "pca",
   metricsLabels = NULL
 )
@@ -26,7 +27,12 @@ or 'NULL' to calculate them all}
 
 \item{meta.batch}{Which meta data column contains batch}
 
-\item{method.reduction}{reduction method to consider, eg 'pca'}
+\item{iLISI_perplexity}{Number of cells in neighborhood for integration LISI metrics (iLISI)}
+
+\item{cLISI_perplexity}{Number of cells in neighborhood for cluster LISI metrics (cLISI). By default,
+it is calculated as 2 * average number of cells per label per dataset, not counting zero-size clusters.}
+
+\item{method.reduction}{Reduction method to consider, eg 'pca'}
 
 \item{metricsLabels}{which cluster/celltype labels to consider to summarize metrics, by default use all}
 }
