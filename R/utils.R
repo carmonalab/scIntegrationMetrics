@@ -278,8 +278,8 @@ getIntegrationMetrics <- function(object,
     integrationMetrics <- list()
     
     #Exclude cells with NA labels (most metrics cannot account for NAs)
-    ncells <- nrow(meta)
     meta <- object@meta.data[,c(meta.label, meta.batch)]
+    ncells <- nrow(meta)
     notNA.cells <- rownames(meta)[!is.na(meta[,meta.label]) & !is.na(meta[,meta.batch])]
     object <- subset(object, cells = notNA.cells)
     meta <- meta[notNA.cells,]
