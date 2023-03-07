@@ -198,7 +198,6 @@ compute_lisi_splitBy <- function (X, meta_data,
                                      function(w) length(unique(w)))
       x.lisi <- data.frame(t(t(x.lisi-1)/(label_colnames_levels-1)))
     }
-    message("LISI splitBy: Processing group ", n)
     return(x.lisi)
   })
   
@@ -279,11 +278,13 @@ getIntegrationMetrics <- function(object,
     integrationMetrics <- list()
     
     #Exclude cells with NA labels (most metrics cannot account for NAs)
+    ncells <- nrow(meta)
     meta <- object@meta.data[,c(meta.label, meta.batch)]
     notNA.cells <- rownames(meta)[!is.na(meta[,meta.label]) & !is.na(meta[,meta.batch])]
     object <- subset(object, cells = notNA.cells)
+    meta <- meta[notNA.cells,]
     
-    n.rem <- nrow(meta) - length(notNA.cells)
+    n.rem <- ncells - length(notNA.cells)
     if (n.rem > 0) {
       message(sprintf("Found labels with NA value. Excluding %i cells from calculation of metrics", n.rem))
     }
@@ -304,7 +305,7 @@ getIntegrationMetrics <- function(object,
       t <- table(meta$scGate_multi, meta$SampleLabel)
       labsize_means <- apply(t, 1, function(x){mean(x[x>0])})
       cLISI_perplexity <- round(2 * mean(labsize_means))
-      mess <- sprintf("Setting default cLISI_perplexity to %i", cLISI_perplexity)
+      mess <- sprintf("Setting default cLISI_perplexity to %0.f", cLISI_perplexity)
       message(mess)
     }
     
