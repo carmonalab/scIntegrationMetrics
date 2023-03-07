@@ -302,7 +302,7 @@ getIntegrationMetrics <- function(object,
     
     #Determine default cLISI_perplexity
     if (cLISI_perplexity == "default") {
-      t <- table(meta$scGate_multi, meta$SampleLabel)
+      t <- table(meta[,meta.label], meta[,meta.batch])
       labsize_means <- apply(t, 1, function(x){mean(x[x>0])})
       cLISI_perplexity <- round(2 * mean(labsize_means))
       mess <- sprintf("Setting default cLISI_perplexity to %0.f", cLISI_perplexity)
