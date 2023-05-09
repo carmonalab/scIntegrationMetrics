@@ -208,7 +208,8 @@ compute_lisi_splitBy <- function (X, meta_data,
 #' @param object A seurat object with dimensionality reduction and meta data
 #' @param meta.label Which meta data column contains cluster/celltype labels 
 #' @param meta.batch Which meta data column contains batch 
-#' @param method.reduction reduction method to consider, eg 'pca'
+#' @param method.reduction Dimensionality reduction for calculation of metrics, e.g. 'pca'
+#' @param ndim Number of dimensions in methods.reduction (if NULL use all dimensions)
 #' @param metrics one or more of 'iLISI', 'norm_iLISI',
 #'     'CiLISI', 'CiLISI_means','norm_cLISI', 'norm_cLISI_means',
 #'     'celltype_ASW', 'celltype_ASW_means';
@@ -240,6 +241,7 @@ getIntegrationMetrics <- function(object,
            meta.batch,
            lisi_perplexity=30,
            method.reduction="pca",
+           ndim=NULL,
            metricsLabels = NULL) {
     # check input parameters
     metricsAvailable <-
@@ -276,12 +278,20 @@ getIntegrationMetrics <- function(object,
     
     message(paste("Batches:", paste(batchNames, collapse = ",")))
     
+    #get embeddings
+    emb <- Embeddings(object, reduction = method.reduction)
+    if (is.null(emb)) {
+      ndim <- ncol(emb)
+    } else if (ndim > ncol(emb)) {
+      ndim <- ncol(emb)
+    }
+    emb <- emb[,1:ndim]
     
     #Integration LISI
     if (any(c("iLISI", "norm_iLISI") %in% metrics)) {
       lisi.this <-
         compute_lisi(
-          object@reductions[[method.reduction]]@cell.embeddings,
+          X = emb,
           meta_data = object@meta.data,
           label_colnames = meta.batch,
           perplexity = lisi_perplexity
@@ -307,7 +317,7 @@ getIntegrationMetrics <- function(object,
     ) %in% metrics)) {
       lisi_splitByCelltype <-
         compute_lisi_splitBy(
-          object@reductions[[method.reduction]]@cell.embeddings,
+          X = emb,
           meta_data = object@meta.data,
           label_colnames = meta.batch,
           perplexity = lisi_perplexity,
@@ -331,7 +341,7 @@ getIntegrationMetrics <- function(object,
     if (any(c("norm_cLISI", "norm_cLISI_means") %in% metrics)) {
       lisi.this <-
         compute_lisi(
-          object@reductions[[method.reduction]]@cell.embeddings,
+          X = emb,
           meta_data = object@meta.data,
           label_colnames = meta.label,
           perplexity = lisi_perplexity
@@ -355,7 +365,7 @@ getIntegrationMetrics <- function(object,
     if (any(c("celltype_ASW", "celltype_ASW_means") %in% metrics)) {
       sil.this <-
         compute_silhouette(
-          object@reductions[[method.reduction]]@cell.embeddings,
+          X = emb,
           meta_data = object@meta.data,
           label_colnames = meta.label
         )[[1]]

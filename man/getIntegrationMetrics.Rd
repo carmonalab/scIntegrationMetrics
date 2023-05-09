@@ -11,6 +11,7 @@ getIntegrationMetrics(
   meta.batch,
   lisi_perplexity = 30,
   method.reduction = "pca",
+  ndim = NULL,
   metricsLabels = NULL
 )
 }
@@ -26,7 +27,9 @@ or 'NULL' to calculate them all}
 
 \item{meta.batch}{Which meta data column contains batch}
 
-\item{method.reduction}{reduction method to consider, eg 'pca'}
+\item{method.reduction}{Dimensionality reduction for calculation of metrics, e.g. 'pca'}
+
+\item{ndim}{Number of dimensions in methods.reduction (if NULL use all dimensions)}
 
 \item{metricsLabels}{which cluster/celltype labels to consider to summarize metrics, by default use all}
 }
