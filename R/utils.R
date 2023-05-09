@@ -304,7 +304,7 @@ getIntegrationMetrics <- function(object,
     
     #get embeddings
     emb <- Embeddings(object, reduction = method.reduction)
-    if (is.null(emb)) {
+    if (is.null(ndim)) {
       ndim <- ncol(emb)
     } else if (ndim > ncol(emb)) {
       ndim <- ncol(emb)
