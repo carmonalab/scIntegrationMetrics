@@ -163,6 +163,7 @@ compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
 #' @param label_colnames Which variables to compute averages for.
 #' @param normalize Normalize LISI between 0 and 1 
 #' @param split_by_colname Which variable levels use to split data
+#' @param metricsLabels Which cell types to evaluate for LISI calculation
 #' 
 #' @return A list of data frames of LISI values (one per split_by_colname level). Each row is a cell and each
 #' column is a different label variable. 
@@ -171,10 +172,18 @@ compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
 compute_lisi_splitBy <- function (X, meta_data,
                                   label_colnames,
                                   split_by_colname,
+                                  metricsLabels=NULL,
                                   normalize=TRUE, ...){
+  
+  if (is.null(metricsLabels))
+    metricsLabels <- unique(na.omit(meta_data[[meta.label]]))
   
   X.list <- split.data.frame(X,meta_data[,split_by_colname])
   meta_data.list <- split.data.frame(meta_data,meta_data[,split_by_colname])
+  
+  #on selected categories, and excluding NAs
+  X.list <- X.list[metricsLabels]
+  meta_data.list <- meta_data.list[metricsLabels]
   
   names <- names(X.list)
   
@@ -186,10 +195,9 @@ compute_lisi_splitBy <- function (X, meta_data,
     x.lisi <- compute_lisi(x, m, label_colnames=label_colnames, ... )
     if(normalize){
       label_colnames_levels <- apply(m[,label_colnames,drop=F],2,
-                                     function(x) length(unique(x)))
+                                     function(w) length(unique(w)))
       x.lisi <- data.frame(t(t(x.lisi-1)/(label_colnames_levels-1)))
     }
-    message("LISI splitBy: Processing group ", n)
     return(x.lisi)
   })
   
@@ -210,6 +218,9 @@ compute_lisi_splitBy <- function (X, meta_data,
 #' @param meta.batch Which meta data column contains batch 
 #' @param method.reduction Dimensionality reduction for calculation of metrics, e.g. 'pca'
 #' @param ndim Number of dimensions in methods.reduction (if NULL use all dimensions)
+#' @param iLISI_perplexity Number of cells in neighborhood for integration LISI metrics (iLISI)
+#' @param cLISI_perplexity Number of cells in neighborhood for cluster LISI metrics (cLISI). By default,
+#'     it is calculated as 2 * average number of cells per label per dataset, not counting zero-size clusters.
 #' @param metrics one or more of 'iLISI', 'norm_iLISI',
 #'     'CiLISI', 'CiLISI_means','norm_cLISI', 'norm_cLISI_means',
 #'     'celltype_ASW', 'celltype_ASW_means';
@@ -239,7 +250,8 @@ getIntegrationMetrics <- function(object,
            metrics=NULL,
            meta.label,
            meta.batch,
-           lisi_perplexity=30,
+           iLISI_perplexity=30,
+           cLISI_perplexity="default",
            method.reduction="pca",
            ndim=NULL,
            metricsLabels = NULL) {
@@ -267,8 +279,20 @@ getIntegrationMetrics <- function(object,
     
     integrationMetrics <- list()
     
+    #Exclude cells with NA labels (most metrics cannot account for NAs)
+    meta <- object@meta.data[,c(meta.label, meta.batch)]
+    ncells <- nrow(meta)
+    notNA.cells <- rownames(meta)[!is.na(meta[,meta.label]) & !is.na(meta[,meta.batch])]
+    object <- subset(object, cells = notNA.cells)
+    meta <- meta[notNA.cells,]
+    
+    n.rem <- ncells - length(notNA.cells)
+    if (n.rem > 0) {
+      message(sprintf("Found labels with NA value. Excluding %i cells from calculation of metrics", n.rem))
+    }
+    
     if (is.null(metricsLabels))
-      metricsLabels <- unique(object@meta.data[[meta.label]])
+      metricsLabels <- unique(na.omit(object@meta.data[[meta.label]]))
     
     message(paste("Cell type labels:", paste(metricsLabels, collapse = ",")))
     
@@ -286,6 +310,15 @@ getIntegrationMetrics <- function(object,
       ndim <- ncol(emb)
     }
     emb <- emb[,1:ndim]
+
+    #Determine default cLISI_perplexity
+    if (cLISI_perplexity == "default") {
+      t <- table(meta[,meta.label], meta[,meta.batch])
+      labsize_means <- apply(t, 1, function(x){mean(x[x>0])})
+      cLISI_perplexity <- round(2 * mean(labsize_means))
+      mess <- sprintf("Setting default cLISI_perplexity to %0.f", cLISI_perplexity)
+      message(mess)
+    }
     
     #Integration LISI
     if (any(c("iLISI", "norm_iLISI") %in% metrics)) {
@@ -294,13 +327,12 @@ getIntegrationMetrics <- function(object,
           X = emb,
           meta_data = object@meta.data,
           label_colnames = meta.batch,
-          perplexity = lisi_perplexity
+          perplexity = iLISI_perplexity
         )[[1]]
       
       if ("iLISI" %in% metrics) {
         integrationMetrics[["iLISI"]] <-
           mean(lisi.this[metricsLabels_logic])
-        
       }
       
       if ("norm_iLISI" %in% metrics) {
@@ -320,31 +352,32 @@ getIntegrationMetrics <- function(object,
           X = emb,
           meta_data = object@meta.data,
           label_colnames = meta.batch,
-          perplexity = lisi_perplexity,
+          perplexity = iLISI_perplexity,
           split_by_colname = meta.label,
+          metricsLabels = metricsLabels,
           normalize = T
         )
       
       if ("CiLISI" %in% metrics) {
         integrationMetrics[["CiLISI"]] <-
-          mean(unlist(lisi_splitByCelltype)[metricsLabels_logic])
+          mean(unlist(lisi_splitByCelltype))
       }
       if ("CiLISI_means" %in% metrics) {
-        classMeans <- sapply(lisi_splitByCelltype, function(x) mean(x[,1]))[metricsLabels] # only considering the first `label_colnames`
+        classMeans <- sapply(lisi_splitByCelltype, function(x) mean(x[,1]))
         message("CiLISI: ", paste(names(lisi_splitByCelltype), round(classMeans, 2), " "))
         integrationMetrics[["CiLISI_means"]] <-
           mean(classMeans)
       }
     }
     
-    #cluster/celltype LISI
+    #Cluster/celltype LISI
     if (any(c("norm_cLISI", "norm_cLISI_means") %in% metrics)) {
       lisi.this <-
         compute_lisi(
           X = emb,
           meta_data = object@meta.data,
           label_colnames = meta.label,
-          perplexity = lisi_perplexity
+          perplexity = cLISI_perplexity
         )[[1]]
       
       lisi.this.normalized <-
