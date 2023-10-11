@@ -2,7 +2,7 @@
 
 A collection of metrics to evaluate scRNA-seq data integration quality, including LISI, per-cell type LISI, and silhouette average width (ASW).
 
-This package is based on [immunogenomics/LISI](https://github.com/immunogenomics/LISI) by [Korsunsky et al](https://www.nature.com/articles/s41592-019-0619-0), adds new metrics and can be applied directly on Seurat objects. For a description and motivation for the new metrics please refer to [Andreatta et al. (2023) *bioRxiv preprint*](https://www.biorxiv.org/content/10.1101/2023.07.07.548105v1).
+This package is based on [immunogenomics/LISI](https://github.com/immunogenomics/LISI); it adds new metrics and can be applied directly on Seurat objects. For a description and motivation for the new metrics see sections below and refer to [Andreatta et al. (2023) *bioRxiv preprint*](https://www.biorxiv.org/content/10.1101/2023.07.07.548105v1).
 
 
 ### Installation
@@ -15,7 +15,7 @@ This package is based on [immunogenomics/LISI](https://github.com/immunogenomics
 
 ### Usage
 
-To illustrate how to calculate these integration metrics, we will start from a collection of pancreas datasets distributed with SeuratData.
+To illustrate how to calculate these integration metrics, we will start from a collection of pancreas datasets sequenced with different technologies and distributed with SeuratData.
 
 First, install the data:
 ```r
@@ -30,23 +30,10 @@ panc8 <- panc8 |> NormalizeData() |>
   FindVariableFeatures() |>
   ScaleData() |> RunPCA(npcs=20)
 
-head(panc8[[]])
-```
-
-```
-        orig.ident nCount_RNA nFeature_RNA   tech replicate assigned_cluster celltype dataset
-D101_5        D101   4615.810         1986 celseq    celseq             <NA>    gamma  celseq
-D101_7        D101  29001.563         4209 celseq    celseq             <NA>   acinar  celseq
-D101_10       D101   6707.857         2408 celseq    celseq             <NA>    alpha  celseq
-D101_13       D101   8797.224         2964 celseq    celseq             <NA>    delta  celseq
-D101_14       D101   5032.558         2264 celseq    celseq             <NA>     beta  celseq
-D101_17       D101  13474.866         3982 celseq    celseq             <NA>   ductal  celseq
 ```
 
 
-This object consists of 8 pancreas datasets ("replicate") across five technologies ("tech"); cell types were manually annotated and stored in the "celltype" metadata column.
-
-We can calculate metrics for batch mixing (in terms of tech used) and cell type separation on this unintegrated object:
+We can calculate metrics for batch mixing and cell type separation on this unintegrated object, by specifying the metadata columns that contain batch and cell type information ("tech" and "celltype" respectively):
 ```r
 library(scIntegrationMetrics)
 
