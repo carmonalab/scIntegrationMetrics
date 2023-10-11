@@ -64,7 +64,7 @@ panc8.list <- SplitObject(panc8, split.by = "tech")
 panc8.stacas <- Run.STACAS(panc8.list)
 ```
 
-Upon integration, metrics for both batch mixing and cell type separation were improved.
+We can then calculate metrics after integration, and verify whether batch mixing and cell type separation were improved upon integration:
 ```r
 metrics.integrated <- getIntegrationMetrics(panc8.stacas, meta.label = "celltype",
                                  meta.batch = "tech",
