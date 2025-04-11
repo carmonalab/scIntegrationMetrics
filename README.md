@@ -26,6 +26,9 @@ library(Seurat)
 InstallData("panc8")
 data("panc8")
 
+# Enforce Seurat object version compatibility, if needed
+panc8 <- UpdateSeuratObject(panc8)
+
 panc8 <- panc8 |> NormalizeData() |>
   FindVariableFeatures() |>
   ScaleData() |> RunPCA(npcs=20)
