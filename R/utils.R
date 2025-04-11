@@ -176,7 +176,7 @@ compute_lisi_splitBy <- function (X, meta_data,
                                   normalize=TRUE, ...){
   
   if (is.null(metricsLabels))
-    metricsLabels <- unique(na.omit(meta_data[[meta.label]]))
+    metricsLabels <- unique(na.omit(meta_data[[split_by_colname]]))
   
   X.list <- split.data.frame(X,meta_data[,split_by_colname])
   meta_data.list <- split.data.frame(meta_data,meta_data[,split_by_colname])
