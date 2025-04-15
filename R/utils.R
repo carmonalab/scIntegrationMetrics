@@ -156,41 +156,62 @@ compute_mean_singleLevel <- function(res, meta_data, label_colnames, level) {
 }
 
 
-#' Compute Local Inverse Simpson's Index (LISI) split by groups
+#' Compute Local Inverse Simpson's Index (LISI) in each split by groups
 #' 
 #' @param X A matrix with cells (rows) and features (columns).
-#' @param meta_data A data frame with one row per cell. 
-#' @param label_colnames Which variables to compute averages for.
-#' @param normalize Normalize LISI between 0 and 1 
-#' @param split_by_colname Which variable levels use to split data
-#' @param metricsLabels Which cell types to evaluate for LISI calculation
+#' @param meta_data A data frame with one row per cell, containing metadata such as groupings and variable annotations.
+#' @param label_colnames A character vector indicating which variable(s) to compute LISI for (e.g., "batch").
+#' @param normalize Logical. Whether to normalize LISI scores to the range [0, 1]. Default is TRUE.
+#' @param split_by_colname The column in meta_data used to split the data into groups (e.g., "cell_type").
+#' @param metricsLabels Character vector of values in split_by_colname to compute LISI for. Default is all unique levels of split_by_colname.
+#' @param min.cells.split Minimum number of unique values in label_colnames required in each group to compute LISI. Default is 10.
+#' @param min.vars.label Minimum number of unique samples (or other variables) required in each group to compute LISI. Default is 2.
 #' 
 #' @return A list of data frames of LISI values (one per split_by_colname level). Each row is a cell and each
 #' column is a different label variable. 
 #' 
 #' @export compute_lisi_splitBy
-compute_lisi_splitBy <- function (X, meta_data,
+compute_lisi_splitBy <- function (X,
+                                  meta_data,
                                   label_colnames,
                                   split_by_colname,
                                   metricsLabels=NULL,
-                                  normalize=TRUE, ...){
+                                  normalize=TRUE,
+                                  min.cells.split = 10,
+                                  min.vars.label = 2,
+                                  ...){
   
-  if (is.null(metricsLabels))
+  if (is.null(metricsLabels)){
     metricsLabels <- unique(na.omit(meta_data[[split_by_colname]]))
+  }
   
   X.list <- split.data.frame(X,meta_data[,split_by_colname])
   meta_data.list <- split.data.frame(meta_data,meta_data[,split_by_colname])
+  
+  # Filter based on at least 10 cell types and more than 1 sample
+  keep_names <- sapply(metricsLabels, function(n) {
+    m <- meta_data.list[[n]]
+    celltype_count <- nrow(m)
+    sample_count <- length(unique(m[[label_colnames]]))  # assuming column is named 'sample'
+    return(celltype_count >= min.cells.split &&
+             sample_count >= min.vars.label)
+  })
+  
+  metricsLabels <- metricsLabels[keep_names]
+  
+  if (length(metricsLabels) == 0) {
+    warning("No groups passed the filtering criteria of compute_lisi_splitBy
+            (min.cells.split and min.vars.label). Returning empty list.")
+    return(list())
+  }
   
   #on selected categories, and excluding NAs
   X.list <- X.list[metricsLabels]
   meta_data.list <- meta_data.list[metricsLabels]
   
-  names <- names(X.list)
-  
   X.list.list <- lapply(seq_along(X.list), function(i) {
     x <- X.list[[i]]
     m <- meta_data.list[[i]]
-    n <- names[i]
     
     x.lisi <- compute_lisi(x, m, label_colnames=label_colnames, ... )
     if(normalize){
@@ -201,7 +222,7 @@ compute_lisi_splitBy <- function (X, meta_data,
     return(x.lisi)
   })
   
-  names(X.list.list) <- names
+  names(X.list.list) <- names(X.list)
   
   return(X.list.list)
 }
