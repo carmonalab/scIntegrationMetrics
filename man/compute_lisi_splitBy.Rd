@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{compute_lisi_splitBy}
 \alias{compute_lisi_splitBy}
-\title{Compute Local Inverse Simpson's Index (LISI) split by groups}
+\title{Compute Local Inverse Simpson's Index (LISI) in each split by groups}
 \usage{
 compute_lisi_splitBy(
   X,
@@ -11,26 +11,32 @@ compute_lisi_splitBy(
   split_by_colname,
   metricsLabels = NULL,
   normalize = TRUE,
+  min.cells.split = 10,
+  min.vars.label = 2,
   ...
 )
 }
 \arguments{
 \item{X}{A matrix with cells (rows) and features (columns).}
 
-\item{meta_data}{A data frame with one row per cell.}
+\item{meta_data}{A data frame with one row per cell, containing metadata such as groupings and variable annotations.}
 
-\item{label_colnames}{Which variables to compute averages for.}
+\item{label_colnames}{A character vector indicating which variable(s) to compute LISI for (e.g., "batch").}
 
-\item{split_by_colname}{Which variable levels use to split data}
+\item{split_by_colname}{The column in meta_data used to split the data into groups (e.g., "cell_type").}
 
-\item{metricsLabels}{Which cell types to evaluate for LISI calculation}
+\item{metricsLabels}{Character vector of values in split_by_colname to compute LISI for. Default is all unique levels of split_by_colname.}
 
-\item{normalize}{Normalize LISI between 0 and 1}
+\item{normalize}{Logical. Whether to normalize LISI scores to the range [0, 1]. Default is TRUE.}
+
+\item{min.cells.split}{Minimum number of unique values in label_colnames required in each group to compute LISI. Default is 10.}
+
+\item{min.vars.label}{Minimum number of unique samples (or other variables) required in each group to compute LISI. Default is 2.}
 }
 \value{
 A list of data frames of LISI values (one per split_by_colname level). Each row is a cell and each
 column is a different label variable.
 }
 \description{
-Compute Local Inverse Simpson's Index (LISI) split by groups
+Compute Local Inverse Simpson's Index (LISI) in each split by groups
 }
