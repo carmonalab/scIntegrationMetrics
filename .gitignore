@@ -5,3 +5,8 @@ src/*.o
 src/*.so
 src/*.dll
 README.html
+renv/
+test.Rmd
+.Rprofile
+.Rbuildignore
+renv.lock
